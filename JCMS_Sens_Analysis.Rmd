@@ -1,0 +1,180 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+#library(readr)
+library(stringr)
+library(dplyr)
+#library(reshape2)
+library(ggplot2)
+library(readxl)
+library(lubridate)
+library(data.table)
+library(Rmisc)
+library(tidyfast)
+
+################# SET WORKING DIRECTORY
+wd <- "/Users/vkumar/Box Sync/LAB/PSY todo/2023-01-15 JCMS Sens Analysis/Data/"
+setwd(wd)
+
+################# READ INPUT FILE 
+filename <- "/Users/vkumar/Box Sync/LAB/PSY todo/2023-01-15 JCMS Sens Analysis/Data/2023-01-20 TOM_PSYQuery2.txt"
+
+d1 <- fread(filename, sep = '\t')
+
+################# CREATE A FOLDER FOR OUTPUT FILES 
+#  Create an empty folder in directory that is one level higher than the input file
+
+dir.create(file.path("../PSY_Processed"), showWarnings = FALSE)
+
+```
+
+
+```{r}
+################# FILTER DATA AND PROCESS DATA
+#################################################################### 
+
+################# FILTER BY TESTER
+d2 <- d1[ExptDoneBy == 'Marina']
+
+# this can be a list -- example
+# d2 <- d1[ExptDoneBy %in% .('Sandeep','Marina')]
+
+################# FILTER BY DOSE
+d2 <- d2[DrugDose == 10]
+
+################# FILTER BY STRAIN
+d2 <- d2[strainName %in% .('C57BL/6NJ','C57BL/6J')]
+
+################# SORT BY MouseID AND TestDate
+d2 <- d2[order(MouseID, TestDate)]
+
+################# ADD TEST NUMBER AS A NEW COLUMN
+d2 <- d2[ , TestNumber := order(TestDate), by = MouseID]
+
+
+
+```
+
+## Use this code to determine which animals have not been tested 13 times
+
+```{r}
+################# CREATE SOME OUTPUTS FOR SANITY CHECKS
+# DATA WILL BE IN THE PSY_Processed DIRECTORY
+setwd(wd)
+setwd("../PSY_Processed")
+
+################# WRITE d2
+fwrite(d2, file = "test.tsv", sep = "\t")
+
+################# WRITE FREQUENCY OF TESTS 
+# This can be used to find animals that have not not been tested 13 times for instance.
+
+# Frewuency table that counts will list MouseID and frequency
+
+freqTable <- d2[, .N ,by = .(MouseID, strainName)] 
+freqTable <- freqTable[order(strainName, N)] #orders the table above
+
+# condenced table by strain, also renames N to numberTests
+
+StrainFreqTable <- freqTable[, .N, by = .(strainName, numberTests = N)]  
+fwrite(StrainFreqTable, "StrainFrequencyTable.csv")
+
+# create and write a table by MouseID to determine which animals are missing data 
+
+fwrite(d2[, .N ,by = .(MouseID, strainName)], 
+       file = "Number_tests.csv", 
+       sep = ",")
+
+
+```
+
+
+
+
+```{r}
+################# PLOT ALL TRACES FOR EACH ANIMAL
+
+################# Only work with animals that have been tested a certain number of times
+
+numberTestsNeeded <- 13 # required number of tests
+
+MiceToKeep <- d2[, .N, by = MouseID][, MouseID[N >= numberTestsNeeded]]
+
+# filter the mice with at 13 tests
+d3 <- d2[MouseID %in% MiceToKeep]
+
+
+# rearrange columns 
+### I am rearranging the collumns. move all minute by minute data to the end
+d3 <- d3 %>% relocate(num_range("",0:120), .after = TestNumber)
+d3 <- d3 %>% relocate(num_range("-",1:60), .after = TestNumber)
+
+
+# write a table of animals with 13 tests
+setwd(wd)
+setwd("../PSY_Processed")
+fwrite(d3, "d3.csv", sep = ",")
+
+# make a long table for plotting
+file4 <- melt(d3, id = 1:66)
+fwrite(file4, "file4.csv", sep = ",")
+
+# Making the date correct, if the date is not formatted correctly, adjust this I changed "%m/%d/%Y"
+file4$TestDate <- as.Date(file4$TestDate, "%m/%d/%y") 
+
+# as.integer causes some weird oscillation in data. as.numeric is the way to go.  
+file4$variable <- as.numeric(as.character(file4$variable))
+
+##########################################################
+### Plot By AnimalID - one plot for each test
+##########################################################
+
+toPlotAnimalNames <- levels(as.factor(file4$AnimalName))
+
+outFileNamePDF <- paste("../PSY_Processed/ByAnimalCompiled_PSYdata",format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".pdf", sep = "") ## .. means one directory level up
+
+pdf(outFileNamePDF, 8,4)
+for (toPlot in toPlotAnimalNames) {
+# extract the animal to plot
+  toPlot1 <- file4[file4$AnimalName == toPlot,]
+
+# plot the animal
+  p1 <- ggplot(data = toPlot1, aes (x = variable, y = value, group = TestDate, color = as.factor(TestDate))) +
+    geom_line() +
+    coord_cartesian(ylim = c(1,100)) +
+    geom_vline(xintercept = 0, color = 'blue', lwd = .2) +
+    ggtitle(toPlot) 
+
+  print(p1)
+}
+
+dev.off()
+
+
+```
+
+data.table notes
+https://rdatatable.gitlab.io/data.table/index.html
+
+good tutorial
+https://raw.githack.com/uo-ec510-2020-spring/lectures/master/05-datatable/05-datatable.html#1
+
+
+
+fwrite can be used to write tables
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

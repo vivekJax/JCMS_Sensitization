@@ -19,6 +19,7 @@ January 2023
 # Downloading data from JCMS instructions go here.
 @tom and @marina
 
+Add info about directory structure @vivek
 
 
 
@@ -62,7 +63,7 @@ Filtering done by
 ################# CHANGE THESE AS NEEDED 
 
 ################# FILTER BY DOSE ###################################
-Dose <- 10
+Dose <- 20
 d2 <- d1[DrugDose == Dose]
 #################################################################### 
 
@@ -379,7 +380,7 @@ print(sp1)
 
 # PLOT FACET BY STRAIN, EACH ANIMAL'S ACTIVITY IS PLOTTED FOR EACH DAY
 sp1 <- ggplot() +
-  theme_bw() + theme(legend.position = "bottom") +
+  theme_bw() + theme(legend.position = "bottom") + theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
   geom_point(aes(x = as.factor(TestNumber),y = sum5minavg, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
   geom_line(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, fun.data = "mean_se") +

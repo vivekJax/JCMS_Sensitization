@@ -1,11 +1,26 @@
 ---
 title: "R Notebook"
-output: html_notebook
+author: "Vivek Kumar"
+date: "null"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  markdown:
+    wrap: 72
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+# Sensitization data analysis from JCMS for Kumar Lab
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+Vivek Kumar
+
+January 2023
+ 
+# Downloading data from JCMS instructions go here.
+@tom and @marina
+
+
+
 
 ```{r}
 #library(readr)
@@ -36,25 +51,25 @@ dir.create(file.path("../PSY_Processed"), showWarnings = FALSE)
 
 ```
 
+# Filtering data to find the right animals.
+Filtering done by 
+1. Dose 
+2. Tester
+3. Strain
 
 ```{r}
 ################# FILTER DATA AND PROCESS DATA
 ################# CHANGE THESE AS NEEDED 
-#################################################################### 
-#
-#
-#
+
 ################# FILTER BY DOSE ###################################
-#################################################################### 
 Dose <- 10
 d2 <- d1[DrugDose == Dose]
 #################################################################### 
-#
-#
-#
+
+
 ################# FILTER BY TESTER #################################
 d2 <- d2[ExptDoneBy == 'Marina']
-#
+
 # this can be a list -- example
 # d2 <- d1[ExptDoneBy %in% .('Sandeep','Marina')]
 #################################################################### 
@@ -63,27 +78,40 @@ d2 <- d2[ExptDoneBy == 'Marina']
 d2 <- d2[strainName %in% .('C57BL/6NJ','C57BL/6J')]
 #################################################################### 
 
+```
+
+## Use this code to determine which animals have not been tested 13 times, or have been tested more than 13 times. 
+
+Outputs - 
+1. "Filtered_PSY_Data_d2file.tsv" - d2 file. this is filtered file from above. Its been filtered for dose, tester, strain. It has NOT been filtered for number of tests or for number of tests. 
+
+*This part is important.* There are cases of mice with duplicated data.
+Use the following two table that are produced to clean data.
+
+2. "StrainFrequencyTable.csv" - this will have a frequency table for each
+strain
+
+3. "Number_tests.csv" - this table has one row for each mouse the number of
+times its been tested.
+
+**IMPORTANT TO LOOK AT THESE TABLES AND DETERMINE IF ALL DATA IS ACCURATE** 
+
+
+```{r, warning=FALSE}
 
 ################# SORT BY MouseID AND TestDate
 d2 <- d2[order(MouseID, TestDate)]
 
 ################# ADD TEST NUMBER AS A NEW COLUMN
 d2 <- d2[ , TestNumber := order(TestDate), by = MouseID]
-#################################################################### 
 
-
-```
-
-## Use this code to determine which animals have not been tested 13 times
-
-```{r}
 ################# CREATE SOME OUTPUTS FOR SANITY CHECKS
 # DATA WILL BE IN THE PSY_Processed DIRECTORY
 setwd(wd)
 setwd("../PSY_Processed")
 
 ################# WRITE d2
-fwrite(d2, file = "test.tsv", sep = "\t")
+fwrite(d2, file = "Filtered_PSY_Data_d2file.tsv", sep = "\t")
 
 ################# WRITE FREQUENCY OF TESTS 
 # This can be used to find animals that have not not been tested 13 times for instance.
@@ -106,18 +134,26 @@ fwrite(d2[, .N ,by = .(MouseID, strainName)],
 
 
 ```
+## Filter data to find the set of animals to analyze AND Sanity Check Calculations and Plots
 
-## Sanity Check Calculations and Plots
+This part will only operate on mice that have been tested a certain
+number of times.
 
-This part will only operate on mice that have been tested a certain number of times.  
 A completed Sens series should have 13 total tests.
 
 need to remove all empty rows still
 
-plot outputs
+FileOutputs (usually csv files)
 
-file outputs
+"d3" is a filter of "d2" that has 13 tests. 
 
+1. "AnimalsWith13Tests.csv" is an output of d3
+
+2. "LongFormatOf_d3.csv" - is the long format of "d3"
+
+3. "ByAnimalCompiled_PSYdata*.pdf" - Minute by minute data for each animal. All test dates are plotted on one page. I print the comment for each group here. 
+
+4. "ByAnimalCompiled_PSYdata_B_*.pdf" - Minute by minute data for each animal and each date. One trace per page. So a large file. I also print the comments for each animal here. 
 
 ```{r}
 ################# PLOT ALL TRACES FOR EACH ANIMAL
@@ -141,11 +177,11 @@ d3 <- d3 %>% relocate(num_range("-",60:1), .after = TestNumber)
 # write a table of animals with 13 tests
 setwd(wd)
 setwd("../PSY_Processed")
-fwrite(d3, "d3.csv", sep = ",")
+fwrite(d3, "AnimalsWith13Tests.csv", sep = ",")
 
 # make a long table for plotting
 file4 <- melt(d3, id = 1:66)
-fwrite(file4, "file4.csv", sep = ",")
+fwrite(file4, "LongFormatOf_d3.csv", sep = ",")
 
 # Making the date correct, if the date is not formatted correctly, adjust this I changed "%m/%d/%Y"
 file4$TestDate <- mdy_hms(file4$TestDate)  
@@ -203,7 +239,7 @@ for (toPlot2 in testDates) {
   p1 <- ggplot(data = toPlot3, aes (x = variable, y = value)) +
     geom_line() + annotate("text", x = 0, y  = 90, label= toPlot3$IndividualComments, color = "red") +
     coord_cartesian(ylim = c(1,100)) +
-    geom_vline(xintercept = 0, color = 'blue', lwd = .2) +
+    geom_vline(xintercept = 0, color = 'blue', linewidth = .2) +
     ggtitle(paste(toPlot, toPlot2))
 
   print(p1)
@@ -215,17 +251,22 @@ dev.off()
 ```
 
 ## Calculate minute by minute average of activity for each Strain
-This section will produce the followin files
+
+This section will produce the following summary files. They can be used in Excel for further analysis. 
 
 CSV files
-1. Min_SummaryPlots*.csv - this has strain, test number, minute by minute avg
-2. SEM_Strain_TestNo*.csv - this has strain, test number, minute by minute SEM data
 
-Plots in Min_SummaryPlots*.pdf
-1. minute by minute for each day of sens for each strain
+1.    "Min_SummaryPlots*.csv" - this has strain, test number, minute by minute avg 
+
+2.    SEM_Strain_TestNo*.csv - this has strain, test number, minute by minute SEM data
+
+Plots
+
+"Min_SummaryPlots\*.pdf" - Has 2 plots.
+
+1. minute by minute for each day of sens for each strain 
+
 2. minute by minute for each animal faceted by strain.
-
-
 
 ```{r}
 setwd(wd)
@@ -274,7 +315,7 @@ p3 <- ggplot(data = file4, mapping = aes(x = variable, y = value, color = as.fac
   theme(legend.position = "top") + theme(legend.title=element_blank()) + # removes legend title
   labs(x = "Time (Min)", y = "Distance (cm)") +
   scale_y_continuous(sec.axis = sec_axis(~ . , name = "Test Number (1-4 Saline | 5-10 Cocaine | 11 Saline | 12, 13 Cocaine)", breaks = NULL, labels = NULL)) 
-# using secondary axis option from ggplot2 https://stackoverflow.com/questions/11353287/how-do-you-add-a-general-label-to-facets-in-ggplot2
+# using secondary axis option from ggplot2 "https://stackoverflow.com/questions/11353287/how-do-you-add-a-general-label-to-facets-in-ggplot2"
 
 
 outFileNamePDF <- paste("../PSY_Processed/Min_SummaryPlots",format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".pdf", sep = "") 
@@ -287,10 +328,11 @@ print(p3)
 dev.off()
 
 ```
+
 ## Plot the Sens Data.
-I'm recycling code from previous Sens Analysis.
-Using File d3 from above chunk
-Plots will appear in "Sensitization Analysis*.pdf" file
+
+I'm recycling code from previous Sens Analysis. Using File d3 from above
+chunk Plots will appear in "Sensitization Analysis\*.pdf" file
 
 ```{r}
 setwd(wd)
@@ -531,22 +573,9 @@ dev.off()
 
 ```
 
-
-data.table notes
-https://rdatatable.gitlab.io/data.table/index.html
+data.table notes <https://rdatatable.gitlab.io/data.table/index.html>
 
 good tutorial
-https://raw.githack.com/uo-ec510-2020-spring/lectures/master/05-datatable/05-datatable.html#1
-
-
+<https://raw.githack.com/uo-ec510-2020-spring/lectures/master/05-datatable/05-datatable.html#1>
 
 fwrite can be used to write tables
-
-
-
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
-

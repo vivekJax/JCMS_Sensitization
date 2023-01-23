@@ -577,5 +577,3 @@ data.table notes <https://rdatatable.gitlab.io/data.table/index.html>
 
 good tutorial
 <https://raw.githack.com/uo-ec510-2020-spring/lectures/master/05-datatable/05-datatable.html#1>
-
-fwrite can be used to write tables

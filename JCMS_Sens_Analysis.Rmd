@@ -208,7 +208,7 @@ for (toPlot in toPlotAnimalNames) {
     geom_line() + 
     annotate("text", x = 0, y  = 90, label= toPlot1$GroupComments, color = "red") +
     coord_cartesian(ylim = c(1,100)) +
-    geom_vline(xintercept = 0, color = 'blue', linewidth = 1) +
+    geom_vline(xintercept = 0, color = 'blue', linewidth = 0.2) +
     ggtitle(toPlot) 
 
   print(p1)
@@ -287,8 +287,8 @@ d5 <- d3[,lapply(.SD, mean, na.rm=T), by = .(strainName, TestNumber),
 d6 <- d3[,lapply(.SD, function(x) sd(x, na.rm=T)/sqrt(length(na.omit(x)))), by = .(strainName, TestNumber),
 .SDcols = cols] []
 
-fwrite(d5,paste("../PSY_Processed/Mean_Strain_TestNo_",Dose, format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".csv", sep = ""))
-fwrite(d6,paste("../PSY_Processed/SEM_Strain_TestNo_",Dose, format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".csv", sep = ""))
+fwrite(d5,paste("../PSY_Processed/Mean_Strain_TestNo_",Dose, format(Sys.time(),"mg_%Y-%m-%d(%H_%M%p)"),".csv", sep = ""))
+fwrite(d6,paste("../PSY_Processed/SEM_Strain_TestNo_",Dose, format(Sys.time(),"mg_%Y-%m-%d(%H_%M%p)"),".csv", sep = ""))
 
  
 ##################### PLOTS minute by minute by strain
@@ -298,7 +298,7 @@ p2 <- ggplot(data = file4, mapping = aes(x = variable, y = value, color = as.fac
   stat_summary(fun = mean, geom="line", color = "grey50", linewidth = 0.2) +
   facet_grid(TestNumber~.) +
   xlim(-60, 60) +
-  geom_vline(xintercept = 0, color = 'red', lwd = .2) + 
+  geom_vline(xintercept = 0, color = 'red', linewidth = .2) + 
   ggtitle(paste("Sens 10mg/kg - Per strain")) +
   theme(legend.position = "top") + theme(legend.title=element_blank()) + # removes legend title
   labs(x = "Time (Min)", y = "Distance (cm)") +
@@ -310,7 +310,7 @@ p3 <- ggplot(data = file4, mapping = aes(x = variable, y = value, color = as.fac
   geom_line(linewidth = 0.2) +
   facet_grid(TestNumber~strainName) +
   xlim(-60, 60) +
-  geom_vline(xintercept = 0, color = 'red', linewidth = 0.5) +
+  geom_vline(xintercept = 0, color = 'red', linewidth = 0.2) +
   ggtitle(paste("Sens 10mg/kg - Per Animal")) +
   theme(legend.position = "top") + theme(legend.title=element_blank()) + # removes legend title
   labs(x = "Time (Min)", y = "Distance (cm)") +
@@ -354,7 +354,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,
   geom_point(shape = 21,size = 2) + 
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -362,7 +362,7 @@ print(sp1)
 sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,group = strainName), data=d3) +
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -371,7 +371,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,
   theme_bw() + theme(legend.position = "top") +
   geom_point(shape = 21,size = 2) +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) 
 print(sp1)
@@ -381,7 +381,7 @@ print(sp1)
 sp1 <- ggplot() +
   theme_bw() + theme(legend.position = "bottom") +
   geom_point(aes(x = as.factor(TestNumber),y = sum5minavg, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
-  geom_line(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  geom_line(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = sum5minavg, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
@@ -398,7 +398,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,gr
   geom_point(shape = 21,size = 2) + 
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -406,7 +406,7 @@ print(sp1)
 sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,group = strainName), data=d3) +
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -415,7 +415,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,gr
   theme_bw() + theme(legend.position = "top") +
   geom_point(shape = 21,size = 2) +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) 
 print(sp1)
@@ -424,8 +424,8 @@ print(sp1)
 # PLOT FACET BY STRAIN, EACH ANIMAL'S ACTIVITY IS PLOTTED FOR EACH DAY
 sp1 <- ggplot() +
   theme_bw() + theme(legend.position = "bottom")+ theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
-  geom_point(aes(x = as.factor(TestNumber),y = sum60min, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
-  geom_line(aes(x = as.factor(TestNumber),y = sum60min, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  geom_point(aes(x = as.factor(TestNumber),y = sum60min, colour = as.factor(AnimalName)), data=d3, shape = 21,linewidth = 2) +
+  geom_line(aes(x = as.factor(TestNumber),y = sum60min, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = sum60min, group = strainName), data=d3, fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = sum60min, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
@@ -443,7 +443,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName
   geom_point(shape = 21,size = 2) + 
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -451,7 +451,7 @@ print(sp1)
 sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName,group = strainName), data=d3) +
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -460,7 +460,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName
   theme_bw() + theme(legend.position = "top") +
   geom_point(shape = 21,size = 2) +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) 
 print(sp1)
@@ -470,7 +470,7 @@ print(sp1)
 sp1 <- ggplot() +
   theme_bw() + theme(legend.position = "bottom") + theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
   geom_point(aes(x = as.factor(TestNumber),y = NetResponse, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
-  geom_line(aes(x = as.factor(TestNumber),y = NetResponse, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  geom_line(aes(x = as.factor(TestNumber),y = NetResponse, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = NetResponse, group = strainName), data=d3, fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = NetResponse, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
@@ -487,7 +487,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainNam
   geom_point(shape = 21,size = 2) + 
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -495,7 +495,7 @@ print(sp1)
 sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainName,group = strainName), data=d3) +
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -504,7 +504,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainNam
   theme_bw() + theme(legend.position = "top") +
   geom_point(shape = 21,size = 2) +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) 
 print(sp1)
@@ -514,7 +514,7 @@ print(sp1)
 sp1 <- ggplot() +
   theme_bw() + theme(legend.position = "bottom") + theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
   geom_point(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
-  geom_line(aes(x = as.factor(TestNumber),y = AvgResp30min, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  geom_line(aes(x = as.factor(TestNumber),y = AvgResp30min, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = AvgResp30min, group = strainName), data=d3, fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
@@ -531,7 +531,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName
   geom_point(shape = 21,size = 2) + 
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -539,7 +539,7 @@ print(sp1)
 sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName,group = strainName), data=d3) +
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se")
 print(sp1)
 
@@ -548,7 +548,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName
   theme_bw() + theme(legend.position = "top") +
   geom_point(shape = 21,size = 2) +
   scale_colour_brewer(palette = 'Set1') +
-  geom_line(size = 1.0, stat = "summary") +
+  geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) 
 print(sp1)
@@ -558,7 +558,7 @@ print(sp1)
 sp1 <- ggplot() +
   theme_bw() + theme(legend.position = "bottom") + theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
   geom_point(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
-  geom_line(aes(x = as.factor(TestNumber),y = BaselineAvg, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  geom_line(aes(x = as.factor(TestNumber),y = BaselineAvg, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = BaselineAvg, group = strainName), data=d3, fun.data = "mean_se") +
   facet_grid(facets = . ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)

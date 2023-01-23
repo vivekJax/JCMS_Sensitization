@@ -18,6 +18,7 @@ library(lubridate)
 library(data.table)
 library(Rmisc)
 library(tidyfast)
+library(Hmisc)
 
 ################# SET WORKING DIRECTORY
 wd <- "/Users/vkumar/Box Sync/LAB/PSY todo/2023-01-15 JCMS Sens Analysis/Data/"
@@ -38,26 +39,37 @@ dir.create(file.path("../PSY_Processed"), showWarnings = FALSE)
 
 ```{r}
 ################# FILTER DATA AND PROCESS DATA
+################# CHANGE THESE AS NEEDED 
 #################################################################### 
-
-################# FILTER BY TESTER
-d2 <- d1[ExptDoneBy == 'Marina']
-
+#
+#
+#
+################# FILTER BY DOSE ###################################
+#################################################################### 
+Dose <- 10
+d2 <- d1[DrugDose == Dose]
+#################################################################### 
+#
+#
+#
+################# FILTER BY TESTER #################################
+d2 <- d2[ExptDoneBy == 'Marina']
+#
 # this can be a list -- example
 # d2 <- d1[ExptDoneBy %in% .('Sandeep','Marina')]
+#################################################################### 
 
-################# FILTER BY DOSE
-d2 <- d2[DrugDose == 10]
-
-################# FILTER BY STRAIN
+################# FILTER BY STRAIN #################################
 d2 <- d2[strainName %in% .('C57BL/6NJ','C57BL/6J')]
+#################################################################### 
+
 
 ################# SORT BY MouseID AND TestDate
 d2 <- d2[order(MouseID, TestDate)]
 
 ################# ADD TEST NUMBER AS A NEW COLUMN
 d2 <- d2[ , TestNumber := order(TestDate), by = MouseID]
-
+#################################################################### 
 
 
 ```
@@ -95,7 +107,16 @@ fwrite(d2[, .N ,by = .(MouseID, strainName)],
 
 ```
 
+## Sanity Check Calculations and Plots
 
+This part will only operate on mice that have been tested a certain number of times.  
+A completed Sens series should have 13 total tests.
+
+need to remove all empty rows still
+
+plot outputs
+
+file outputs
 
 
 ```{r}
@@ -112,9 +133,9 @@ d3 <- d2[MouseID %in% MiceToKeep]
 
 
 # rearrange columns 
-### I am rearranging the collumns. move all minute by minute data to the end
+### I am rearranging the columns. move all minute by minute data to the end
 d3 <- d3 %>% relocate(num_range("",0:120), .after = TestNumber)
-d3 <- d3 %>% relocate(num_range("-",1:60), .after = TestNumber)
+d3 <- d3 %>% relocate(num_range("-",60:1), .after = TestNumber)
 
 
 # write a table of animals with 13 tests
@@ -127,13 +148,13 @@ file4 <- melt(d3, id = 1:66)
 fwrite(file4, "file4.csv", sep = ",")
 
 # Making the date correct, if the date is not formatted correctly, adjust this I changed "%m/%d/%Y"
-file4$TestDate <- as.Date(file4$TestDate, "%m/%d/%y") 
+file4$TestDate <- mdy_hms(file4$TestDate)  
 
 # as.integer causes some weird oscillation in data. as.numeric is the way to go.  
 file4$variable <- as.numeric(as.character(file4$variable))
 
 ##########################################################
-### Plot By AnimalID - one plot for each test
+### Plot By AnimalID - one plot for each animal
 ##########################################################
 
 toPlotAnimalNames <- levels(as.factor(file4$AnimalName))
@@ -141,15 +162,17 @@ toPlotAnimalNames <- levels(as.factor(file4$AnimalName))
 outFileNamePDF <- paste("../PSY_Processed/ByAnimalCompiled_PSYdata",format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".pdf", sep = "") ## .. means one directory level up
 
 pdf(outFileNamePDF, 8,4)
+
 for (toPlot in toPlotAnimalNames) {
 # extract the animal to plot
   toPlot1 <- file4[file4$AnimalName == toPlot,]
 
 # plot the animal
-  p1 <- ggplot(data = toPlot1, aes (x = variable, y = value, group = TestDate, color = as.factor(TestDate))) +
-    geom_line() +
+  p1 <- ggplot(data = toPlot1, aes(x = variable, y = value, group = TestDate, color = as.factor(TestDate))) +
+    geom_line() + 
+    annotate("text", x = 0, y  = 90, label= toPlot1$GroupComments, color = "red") +
     coord_cartesian(ylim = c(1,100)) +
-    geom_vline(xintercept = 0, color = 'blue', lwd = .2) +
+    geom_vline(xintercept = 0, color = 'blue', linewidth = 1) +
     ggtitle(toPlot) 
 
   print(p1)
@@ -157,8 +180,357 @@ for (toPlot in toPlotAnimalNames) {
 
 dev.off()
 
+##########################################################
+### Plot By AnimalID - one plot for each test
+##########################################################
+
+outFileNamePDF <- paste("../PSY_Processed/ByAnimalCompiled_PSYdata_B_",format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".pdf", sep = "") ## .. means one directory level up
+
+toPlotAnimalNames <- levels(as.factor(file4$AnimalName))
+
+pdf(outFileNamePDF, 4,2)
+
+for (toPlot in toPlotAnimalNames) {
+# extract the animal to plot
+  toPlot1 <- file4[file4$AnimalName == toPlot,]
+
+  testDates <- levels(as.factor(toPlot1$TestDate))
+
+for (toPlot2 in testDates) {
+    toPlot3 <- toPlot1[as.factor(toPlot1$TestDate) == toPlot2,]
+
+# plot the animal
+  p1 <- ggplot(data = toPlot3, aes (x = variable, y = value)) +
+    geom_line() + annotate("text", x = 0, y  = 90, label= toPlot3$IndividualComments, color = "red") +
+    coord_cartesian(ylim = c(1,100)) +
+    geom_vline(xintercept = 0, color = 'blue', lwd = .2) +
+    ggtitle(paste(toPlot, toPlot2))
+
+  print(p1)
+  }
+  }
+
+dev.off()
 
 ```
+
+## Calculate minute by minute average of activity for each Strain
+This section will produce the followin files
+
+CSV files
+1. Min_SummaryPlots*.csv - this has strain, test number, minute by minute avg
+2. SEM_Strain_TestNo*.csv - this has strain, test number, minute by minute SEM data
+
+Plots in Min_SummaryPlots*.pdf
+1. minute by minute for each day of sens for each strain
+2. minute by minute for each animal faceted by strain.
+
+
+
+```{r}
+setwd(wd)
+
+##################### EXPORT SUMMARY TABLES
+
+# these are column names, from minutes -60 to 120 will be used in calculatons. 
+# This can be changed as needed for other columns. I 'm using a trick to get a sequence of numbers.
+# We could easily use c("column1", "Column 10")
+
+cols <- as.character(seq(from = -60, to = 120, by = 1))
+
+# MEAN
+d5 <- d3[,lapply(.SD, mean, na.rm=T), by = .(strainName, TestNumber),
+.SDcols = cols] []
+
+# SEM
+d6 <- d3[,lapply(.SD, function(x) sd(x, na.rm=T)/sqrt(length(na.omit(x)))), by = .(strainName, TestNumber),
+.SDcols = cols] []
+
+fwrite(d5,paste("../PSY_Processed/Mean_Strain_TestNo_",Dose, format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".csv", sep = ""))
+fwrite(d6,paste("../PSY_Processed/SEM_Strain_TestNo_",Dose, format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".csv", sep = ""))
+
+ 
+##################### PLOTS minute by minute by strain
+p2 <- ggplot(data = file4, mapping = aes(x = variable, y = value, color = as.factor(strainName), fill = as.factor(strainName))) + 
+  theme_bw() +
+  stat_summary(fun.data = mean_se, geom = "ribbon", alpha = 0.3) +
+  stat_summary(fun = mean, geom="line", color = "grey50", linewidth = 0.2) +
+  facet_grid(TestNumber~.) +
+  xlim(-60, 60) +
+  geom_vline(xintercept = 0, color = 'red', lwd = .2) + 
+  ggtitle(paste("Sens 10mg/kg - Per strain")) +
+  theme(legend.position = "top") + theme(legend.title=element_blank()) + # removes legend title
+  labs(x = "Time (Min)", y = "Distance (cm)") +
+  scale_y_continuous(sec.axis = sec_axis(~ . , name = "Test Number (1-4 Saline | 5-10 Cocaine | 11 Saline | 12, 13 Cocaine)", breaks = NULL, labels = NULL)) 
+
+# PLOT minute by minute by each animals
+p3 <- ggplot(data = file4, mapping = aes(x = variable, y = value, color = as.factor(strainName), fill = as.factor(strainName), group=AnimalName)) + 
+  theme_bw() +
+  geom_line(linewidth = 0.2) +
+  facet_grid(TestNumber~strainName) +
+  xlim(-60, 60) +
+  geom_vline(xintercept = 0, color = 'red', linewidth = 0.5) +
+  ggtitle(paste("Sens 10mg/kg - Per Animal")) +
+  theme(legend.position = "top") + theme(legend.title=element_blank()) + # removes legend title
+  labs(x = "Time (Min)", y = "Distance (cm)") +
+  scale_y_continuous(sec.axis = sec_axis(~ . , name = "Test Number (1-4 Saline | 5-10 Cocaine | 11 Saline | 12, 13 Cocaine)", breaks = NULL, labels = NULL)) 
+# using secondary axis option from ggplot2 https://stackoverflow.com/questions/11353287/how-do-you-add-a-general-label-to-facets-in-ggplot2
+
+
+outFileNamePDF <- paste("../PSY_Processed/Min_SummaryPlots",format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".pdf", sep = "") 
+## .. means one directory level up
+pdf(outFileNamePDF, 4, 10)
+
+print(p2)
+print(p3)
+
+dev.off()
+
+```
+## Plot the Sens Data.
+I'm recycling code from previous Sens Analysis.
+Using File d3 from above chunk
+Plots will appear in "Sensitization Analysis*.pdf" file
+
+```{r}
+setwd(wd)
+######################################################################
+# START PDF STATEMENT
+# 
+#######################################################################
+outFileNamePDF <- paste("../PSY_Processed/Sensitization Analysis-",format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".pdf", sep = "") 
+## .. means one directory level up
+pdf(outFileNamePDF, 10,8)
+
+######################################################################
+# sum5minavg 
+# 
+#######################################################################
+
+# PLOT OF MEAN AND SEM WITH EACH TEST POINT
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,group = strainName), data=d3) +
+  geom_point(shape = 21,size = 2) + 
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT FACET BY STRAIN, POINT FOR EACH TEST
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  geom_point(shape = 21,size = 2) +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) 
+print(sp1)
+
+
+# PLOT FACET BY STRAIN, EACH ANIMAL'S ACTIVITY IS PLOTTED FOR EACH DAY
+sp1 <- ggplot() +
+  theme_bw() + theme(legend.position = "bottom") +
+  geom_point(aes(x = as.factor(TestNumber),y = sum5minavg, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
+  geom_line(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  stat_summary(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) +
+  geom_line(aes(x = as.factor(TestNumber),y = sum5minavg, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
+
+print(sp1)
+
+######################################################################
+# sum60min 
+# 
+#######################################################################
+
+# PLOT OF MEAN AND SEM WITH EACH TEST POINT
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,group = strainName), data=d3) +
+  geom_point(shape = 21,size = 2) + 
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT FACET BY STRAIN, POINT FOR EACH TEST
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  geom_point(shape = 21,size = 2) +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) 
+print(sp1)
+
+
+# PLOT FACET BY STRAIN, EACH ANIMAL'S ACTIVITY IS PLOTTED FOR EACH DAY
+sp1 <- ggplot() +
+  theme_bw() + theme(legend.position = "bottom")+ theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
+  geom_point(aes(x = as.factor(TestNumber),y = sum60min, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
+  geom_line(aes(x = as.factor(TestNumber),y = sum60min, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  stat_summary(aes(x = as.factor(TestNumber),y = sum60min, group = strainName), data=d3, fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) +
+  geom_line(aes(x = as.factor(TestNumber),y = sum60min, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
+
+print(sp1)
+
+
+######################################################################
+# NetResponse 
+# 
+#######################################################################
+
+# PLOT OF MEAN AND SEM WITH EACH TEST POINT
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName,group = strainName), data=d3) +
+  geom_point(shape = 21,size = 2) + 
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT FACET BY STRAIN, POINT FOR EACH TEST
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  geom_point(shape = 21,size = 2) +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) 
+print(sp1)
+
+
+# PLOT FACET BY STRAIN, EACH ANIMAL'S ACTIVITY IS PLOTTED FOR EACH DAY
+sp1 <- ggplot() +
+  theme_bw() + theme(legend.position = "bottom") + theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
+  geom_point(aes(x = as.factor(TestNumber),y = NetResponse, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
+  geom_line(aes(x = as.factor(TestNumber),y = NetResponse, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  stat_summary(aes(x = as.factor(TestNumber),y = NetResponse, group = strainName), data=d3, fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) +
+  geom_line(aes(x = as.factor(TestNumber),y = NetResponse, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
+
+print(sp1)
+
+######################################################################
+# AvgResp30min 
+# 
+#######################################################################
+
+# PLOT OF MEAN AND SEM WITH EACH TEST POINT
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainName,group = strainName), data=d3) +
+  geom_point(shape = 21,size = 2) + 
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT FACET BY STRAIN, POINT FOR EACH TEST
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  geom_point(shape = 21,size = 2) +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) 
+print(sp1)
+
+
+# PLOT FACET BY STRAIN, EACH ANIMAL'S ACTIVITY IS PLOTTED FOR EACH DAY
+sp1 <- ggplot() +
+  theme_bw() + theme(legend.position = "bottom") + theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
+  geom_point(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
+  geom_line(aes(x = as.factor(TestNumber),y = AvgResp30min, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  stat_summary(aes(x = as.factor(TestNumber),y = AvgResp30min, group = strainName), data=d3, fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) +
+  geom_line(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
+
+print(sp1)
+
+######################################################################
+# BaselineAvg 
+# 
+#######################################################################
+
+# PLOT OF MEAN AND SEM WITH EACH TEST POINT
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName,group = strainName), data=d3) +
+  geom_point(shape = 21,size = 2) + 
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se")
+print(sp1)
+
+# PLOT FACET BY STRAIN, POINT FOR EACH TEST
+sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  geom_point(shape = 21,size = 2) +
+  scale_colour_brewer(palette = 'Set1') +
+  geom_line(size = 1.0, stat = "summary") +
+  stat_summary(fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) 
+print(sp1)
+
+
+# PLOT FACET BY STRAIN, EACH ANIMAL'S ACTIVITY IS PLOTTED FOR EACH DAY
+sp1 <- ggplot() +
+  theme_bw() + theme(legend.position = "bottom") + theme(legend.title=element_blank()) + theme(legend.text = element_text(size=5)) +
+  geom_point(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
+  geom_line(aes(x = as.factor(TestNumber),y = BaselineAvg, group = strainName), data=d3, size = 1.0, stat = "summary") +
+  stat_summary(aes(x = as.factor(TestNumber),y = BaselineAvg, group = strainName), data=d3, fun.data = "mean_se") +
+  facet_grid(facets = . ~ strainName) +
+  geom_line(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
+
+print(sp1)
+
+######################################################################
+# END PDF STATEMENT
+# 
+dev.off()
+#######################################################################
+
+```
+
 
 data.table notes
 https://rdatatable.gitlab.io/data.table/index.html

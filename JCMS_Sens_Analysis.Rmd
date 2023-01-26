@@ -181,7 +181,7 @@ setwd("../PSY_Processed")
 fwrite(d3, "AnimalsWith13Tests.csv", sep = ",")
 
 # make a long table for plotting
-file4 <- melt(d3, id = 1:66)
+file4 <- melt(d3, id = 1:69)
 fwrite(file4, "LongFormatOf_d3.csv", sep = ",")
 
 # Making the date correct, if the date is not formatted correctly, adjust this I changed "%m/%d/%Y"

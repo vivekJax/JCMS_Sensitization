@@ -43,7 +43,11 @@ setwd(wd)
 ################# READ INPUT FILE 
 filename <- "/Users/vkumar/Box Sync/LAB/PSY todo/2023-01-15 JCMS Sens Analysis/Data/2023-01-20 TOM_PSYQuery2.txt"
 
-d1 <- fread(filename, sep = '\t')
+# Marina wanted the MouseID to maintain 0 in the front --> upload 012345 which is converted to 12345 with the statement below. It convets MouseID to int
+# d1 <- fread(filename, sep = '\t')
+
+# read and maintian the MouseID as character
+d1 <- fread(filename, sep = '\t', colClasses = c("MouseID" = "character"))
 
 ################# CREATE A FOLDER FOR OUTPUT FILES 
 #  Create an empty folder in directory that is one level higher than the input file
@@ -250,6 +254,21 @@ for (toPlot2 in testDates) {
 dev.off()
 
 ```
+
+## This chuck will filter rows that need to be removed.
+This can be edited to include other columns and texts
+
+```{r}
+
+use 
+tolower() to ignore case
+
+ind2 <- c("a", "c")
+library(data.table)
+setDT(df)
+df[X1 %in% ind2]
+```
+
 
 ## Calculate minute by minute average of activity for each Strain
 

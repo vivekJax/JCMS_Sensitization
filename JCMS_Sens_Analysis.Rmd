@@ -37,17 +37,19 @@ library(tidyfast)
 library(Hmisc)
 
 ################# SET WORKING DIRECTORY
-wd <- "/Users/vkumar/Box Sync/LAB/PSY todo/2023-01-15 JCMS Sens Analysis/Data/"
+wd <- "/Users/vkumar/Box Sync/LAB/PSY todo/2024-01-31 JCMS Sens Analysis/Data/"
 setwd(wd)
 
 ################# READ INPUT FILE 
-filename <- "/Users/vkumar/Box Sync/LAB/PSY todo/2023-01-15 JCMS Sens Analysis/Data/2023-01-20 TOM_PSYQuery2.txt"
+filename <- "/Users/vkumar/Box Sync/LAB/PSY todo/2024-01-31 JCMS Sens Analysis/Data/TOM_PSYQuery2 (3).xlsx"
 
 # Marina wanted the MouseID to maintain 0 in the front --> upload 012345 which is converted to 12345 with the statement below. It convets MouseID to int
 # d1 <- fread(filename, sep = '\t')
 
 # read and maintian the MouseID as character
-d1 <- fread(filename, sep = '\t', colClasses = c("MouseID" = "character"))
+# d1 <- fread(filename, sep = '\t', colClasses = c("MouseID" = "character"))
+
+d1 <- as.data.table(read_xlsx(filename, sheet = "TOM_PSYQuery2" )) #made this correction to convert to data.table.
 
 ################# CREATE A FOLDER FOR OUTPUT FILES 
 #  Create an empty folder in directory that is one level higher than the input file
@@ -55,35 +57,195 @@ d1 <- fread(filename, sep = '\t', colClasses = c("MouseID" = "character"))
 dir.create(file.path("../PSY_Processed"), showWarnings = FALSE)
 
 ```
+## Add test numbers
+
+```{r}
+# Making the date correct, if the date is not formatted correctly, adjust this I changed "%m/%d/%Y"
+# d2$TestDate <- mdy_hms(d2$TestDate)  
+
+################# SORT BY MouseID AND TestDate
+d2 <- d1[order(MouseID, TestDate)]
+
+################# ADD TEST NUMBER AS A NEW COLUMN
+d2 <- d2[ , TestNumber := order(TestDate), by = MouseID]
+
+
+
+```
+
 
 # Filtering data to find the right animals.
 Filtering done by 
 1. Dose 
 2. Tester
 3. Strain
+4. Specific
+
+Problem animal
+AnimalName: 021205_B6NJ−Macrod2_Cyfip2_S968F_F_21894
+MouseID: 021205
 
 ```{r}
 ################# FILTER DATA AND PROCESS DATA
 ################# CHANGE THESE AS NEEDED 
 
 ################# FILTER BY DOSE ###################################
-Dose <- 10
-d2 <- d1[DrugDose == Dose]
+Dose <- 10 # this is needed becuase I use Dose as a varialbel. Even if you don't use dose, keep this in place.
+d2 <- d2[DrugDose == Dose]
+
+# Dose <- c(7.5, 10, 15)
+# d2 <- d1[d1$DrugDose %in% Dose, ]
+
+
 #################################################################### 
 
 
 ################# FILTER BY TESTER #################################
-d2 <- d2[ExptDoneBy == 'Marina']
+# d2 <- d2[ExptDoneBy == 'Marina']
+
+# d2 <- d2[ExptDoneBy %in% .('Marina', 'Tom', 'Tom_Marina')]
+
 
 # this can be a list -- example
 # d2 <- d1[ExptDoneBy %in% .('Sandeep','Marina')]
-#################################################################### 
 
 ################# FILTER BY STRAIN #################################
-d2 <- d2[strainName %in% .('C57BL/6NJ','C57BL/6J')]
-#################################################################### 
+# d2 <- d2[strainName %in% .('C57BL/6NJ','C57BL/6J')]
+
+# CONTROLS
+# d2 <- d2[strainName %in% .("C57BL/6NJ",
+#                           "C57BL/6J",
+#                           "B6J-Cyfip2 S968F<N> (GET202)",
+#                           "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Bcl11b
+# d2 <- d2[strainName %in% .("B6NJ-Bcl11b+/- Cyfip2-S968F<J> H Lethal",
+#                           "B6NJ-Bcl11b+/+ Cyfip2-S968F<J> ctrl",
+#                           "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+# 
+# Cxxc4
+# d2 <- d2[strainName %in% .("B6NJ-Cxxc4-/- Cyfip2-S968F<J> Hom Poor Breeders",
+#                           "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Fndc4 - not working Fndc4 not filtered
+# d2 <- d2[strainName %in% .("B6NJ-Cyfip2 S968F<J> (GET204)",
+#                            "B6NJ-Fndc4-/- Cyfip2-S968F<J> Hom Breed Well")]
+
+# # Isca1tm1a
+# d2 <- d2[strainName %in% .("B6NJ-Isca1tm1a+/- Cyfip2-S968F<J> Hlethal",
+#                            "B6NJ-Isca1tm1b+/- Cyfip2-S968F<J> H Lethal",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Kcnd3
+# d2 <- d2[strainName %in% .("B6NJ-Kcnd3-/- Cyfip2-S968F<J> Hom Breed Well",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# KCNH3
+# d2 <- d2[strainName %in% .("B6NJ-KCNH3-/- Cyfip2-S968F<J> Hom Breed Well",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Macrod2
+d2 <- d2[strainName %in% .("B6NJ-Macrod2-/- Cyfip2-S968F<J> Hom Breed Well",
+                         "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Pcyox1l
+# d2 <- d2[strainName %in% .("B6NJ-Pcyox1l-/- Cyfip2-S968F<J> HOK",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Ppfia3
+# d2 <- d2[strainName %in% .("B6NJ-Ppfia3-/- Cyfip2-S968F<J> Hom Poor Breeders",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Ptpru
+# d2 <- d2[strainName %in% .("B6NJ-Ptpru-/- Cyfip2-S968F<J> Hom Breed Well",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Rimklb
+# d2 <- d2[strainName %in% .("B6NJ-Rimklb-/- Cyfip2-S968F<J> HOK",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Scamp5
+# d2 <- d2[strainName %in% .("B6NJ-Scamp5+/- Cyfip2-S968F<J> HLethal",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Slc26a10
+# d2 <- d2[strainName %in% .("B6NJ-Slc26a10-/- Cyfip2-S968F<J> Hom Breed Well",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Strn3
+# d2 <- d2[strainName %in% .("B6NJ-Strn3+/- Cyfip2-S968F<J> H Lethal",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Stx16
+# d2 <- d2[strainName %in% .("B6NJ-Stx16-/- Cyfip2-S968F<J> Hom Poor Breeders",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Tars3
+# d2 <- d2[strainName %in% .("B6NJ-Tars3-/- Cyfip2-S968F<J> HOK",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Tmem151b
+# d2 <- d2[strainName %in% .("B6NJ-Tmem151b-/- Cyfip2-S968F<J> Hom Breed Well",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+# Tppp
+# d2 <- d2[strainName %in% .("B6NJ-Tppp-/- Cyfip2-S968F<J> HOK",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+
+# Zfp536
+# d2 <- d2[strainName %in% .("B6NJ-Zfp536+/- Cyfip2-S968F<J> H Lethal",
+#                          "B6NJ-Cyfip2 S968F<J> (GET204)" )]
+
+
+# d2 <- d2[strainName %in% .(
+# "(B6J x B6NJ)F1-Cyfip2 S968F<J>", "B6J-Cyfip2 S968F<N> (GET202)", 
+# "B6J-Srgap3<S642P> (WT357 GET2924 KI CRISPR)", "B6J-Srgap3<S642P> Cyfip2 S968F<N>  (WT372)", 
+# "B6NJ-Bcl11b+/- Cyfip2-S968F<J> HLethal", "B6NJ-Bcl11b+/+ Cyfip2-S968F<J> ctrl", 
+# "B6NJ-Cyfip2 S968F<J> (GET204)", "B6NJ-Fndc4-/- Cyfip2-S968F<J> HBreed", 
+# "B6NJ-Macrod2-/- Cyfip2-S968F<J> HBreed", "B6NJ-Tmem151b-/- Cyfip2-S968F<J> HBreed", 
+# "C57BL/6J", "C57BL/6NJ")
+# ]
+
+################# FILTER BY TEST DATE #################################
+
+# d1$TestDate <- mdy_hms(d1$TestDate) ## NO
+# d1$TestDate <- ymd(d1$TestDate) ## NO
+
+# Analyze data from 2023
+
+# d2$TestDate <- ymd(d2$TestDate)
+# d2 <- d2[year(TestDate) == 2023]
+# d2 <- d2[year(TestDate) %between% c(2023, 2024)]
+
+# to filter by month and year
+# d2 <- d1[month(d1$TestDate) %in% 4:6 & year(d1$TestDate) %in% 2023]
+
+
+################# FILTER BY SPECIFIC MICE #################################
+# 2023 tests
+# for B6J and B6NJ only
+
+# # B6J, B6NJ, GET202, SRGAP3
+# MouseID_to_analyze <- c(
+# "007013",
+# "007014",
+# "007015",
+# "007016",
+# "007017",
+# "007018",
+# "007071",
+# "019656"
+# )
+# 
+
+
+
 
 ```
+
+
+
 
 ## Use this code to determine which animals have not been tested 13 times, or have been tested more than 13 times. 
 
@@ -104,13 +266,7 @@ times its been tested.
 
 ```{r, warning=FALSE}
 
-################# SORT BY MouseID AND TestDate
-d2 <- d2[order(MouseID, TestDate)]
-
-################# ADD TEST NUMBER AS A NEW COLUMN
-d2 <- d2[ , TestNumber := order(TestDate), by = MouseID]
-
-################# CREATE SOME OUTPUTS FOR SANITY CHECKS
+################# CREATE OUTPUTS FOR SANITY CHECKS
 # DATA WILL BE IN THE PSY_Processed DIRECTORY
 setwd(wd)
 setwd("../PSY_Processed")
@@ -139,6 +295,27 @@ fwrite(d2[, .N ,by = .(MouseID, strainName)],
 
 
 ```
+## This chunk will filter rows that need to be removed.
+This can be edited to include other columns and texts.
+@marina has placed "Do Not Use" in column d13. I will use this to filter the data.
+operate on the d3 object. d3 is used in the next chunk also. 
+
+Output "AnimalsBadTestsRemoved.csv" table will have animals after the "Do Not Use" is removed.
+
+```{r}
+
+
+TextToRemove <- c("Do Not Use")
+
+d2 <- d2[!grepl(TextToRemove, d13)]
+
+# write a table of animals after removing bad tests
+setwd(wd)
+setwd("../PSY_Processed")
+fwrite(d2, "AnimalsAfterBadTestsRemoved.csv", sep = ",")
+
+
+```
 ## Filter data to find the set of animals to analyze AND Sanity Check Calculations and Plots
 
 This part will only operate on mice that have been tested a certain
@@ -160,16 +337,24 @@ FileOutputs (usually csv files)
 
 4. "ByAnimalCompiled_PSYdata_B_*.pdf" - Minute by minute data for each animal and each date. One trace per page. So a large file. I also print the comments for each animal here. 
 
+Comments are scattered in 4 columns. I print them all.
+toPlot3$IndividualComments
+toPlot3$d14
+toPlot3$d13
+toPlot1$GroupComments
+
+
 ```{r}
+
 ################# PLOT ALL TRACES FOR EACH ANIMAL
 
 ################# Only work with animals that have been tested a certain number of times
 
-numberTestsNeeded <- 13 # required number of tests
+numberTestsNeeded <- 10 # required number of tests
 
 MiceToKeep <- d2[, .N, by = MouseID][, MouseID[N >= numberTestsNeeded]]
 
-# filter the mice with at 13 tests
+# filter the mice with at 10 tests
 d3 <- d2[MouseID %in% MiceToKeep]
 
 
@@ -178,18 +363,40 @@ d3 <- d2[MouseID %in% MiceToKeep]
 d3 <- d3 %>% relocate(num_range("",0:120), .after = TestNumber)
 d3 <- d3 %>% relocate(num_range("-",60:1), .after = TestNumber)
 
-
-# write a table of animals with 13 tests
+################# WRITE FREQUENCY OF TESTS 
 setwd(wd)
 setwd("../PSY_Processed")
-fwrite(d3, "AnimalsWith13Tests.csv", sep = ",")
+
+# This can be used to find animals that have not not been tested 13 times for instance.
+
+# Frequency table that counts will list MouseID and frequency
+
+freqTable_afterFilter <- d3[, .N ,by = .(MouseID, strainName)] 
+freqTable_afterFilter <- freqTable_afterFilter[order(strainName, N)] #orders the table above
+
+# condenced table by strain, also renames N to numberTests
+
+StrainFreqTable_afterFilter <- freqTable_afterFilter[, .N, by = .(strainName, numberTests = N)]  
+fwrite(StrainFreqTable_afterFilter, "StrainFrequencyTable_afterFilter.csv")
+
+# create and write a table by MouseID to determine which animals are missing data 
+
+fwrite(d3[, .N ,by = .(MouseID, strainName)], 
+       file = "Number_tests_afterFilter.csv", 
+       sep = ",")
+
+################# ################# 
+
+# write a table of animals with 10 tests
+fwrite(d3, "AnimalsWith10Tests.csv", sep = ",")
 
 # make a long table for plotting
-file4 <- melt(d3, id = 1:69)
+# IF THE NUMBER OF COLUMNS CHANGE, THIS MELT CODE NEEDS TO BE ALTERED. LOOKIN THE "AnimalsWith13Tests.csv" TO DETERMINE HOW MANY COLUMNS ARE BEFORE THE -60 COLUMN.
+file4 <- melt(d3, id = 1:70)
 fwrite(file4, "LongFormatOf_d3.csv", sep = ",")
 
 # Making the date correct, if the date is not formatted correctly, adjust this I changed "%m/%d/%Y"
-file4$TestDate <- mdy_hms(file4$TestDate)  
+# file4$TestDate <- mdy_hms(file4$TestDate)  
 
 # as.integer causes some weird oscillation in data. as.numeric is the way to go.  
 file4$variable <- as.numeric(as.character(file4$variable))
@@ -242,7 +449,9 @@ for (toPlot2 in testDates) {
 
 # plot the animal
   p1 <- ggplot(data = toPlot3, aes (x = variable, y = value)) +
-    geom_line() + annotate("text", x = 0, y  = 90, label= toPlot3$IndividualComments, color = "red") +
+    geom_line() + annotate("text", x = 0, y  = 90, label= toPlot3$IndividualComments, color = "red", size = 3) +
+    geom_line() + annotate("text", x = 0, y  = 80, label= toPlot3$d14, color = "red", size = 3) +
+    geom_line() + annotate("text", x = 0, y  = 70, label= toPlot3$d13, color = "red", size = 3) +
     coord_cartesian(ylim = c(1,100)) +
     geom_vline(xintercept = 0, color = 'blue', linewidth = .2) +
     ggtitle(paste(toPlot, toPlot2))
@@ -255,19 +464,7 @@ dev.off()
 
 ```
 
-## This chuck will filter rows that need to be removed.
-This can be edited to include other columns and texts
 
-```{r}
-
-use 
-tolower() to ignore case
-
-ind2 <- c("a", "c")
-library(data.table)
-setDT(df)
-df[X1 %in% ind2]
-```
 
 
 ## Calculate minute by minute average of activity for each Strain
@@ -288,55 +485,65 @@ Plots
 
 2. minute by minute for each animal faceted by strain.
 
+## SOMETHING WEIRD - CHECK THAT MANY OF THE 10MG ON DAY 11 (SALINE) HAVE VERY GOOD RESPONSE. THESE ARE PROBABLY AN ERROR
 ```{r}
 setwd(wd)
 
 ##################### EXPORT SUMMARY TABLES
 
-# these are column names, from minutes -60 to 120 will be used in calculatons. 
+# these are column names, from minutes -60 to 120 will be used in calculations. 
 # This can be changed as needed for other columns. I 'm using a trick to get a sequence of numbers.
 # We could easily use c("column1", "Column 10")
 
 cols <- as.character(seq(from = -60, to = 120, by = 1))
 
 # MEAN
-d5 <- d3[,lapply(.SD, mean, na.rm=T), by = .(strainName, TestNumber),
+d5 <- d3[,lapply(.SD, mean, na.rm=T), by = .(strainName, DrugDose, TestNumber),
 .SDcols = cols] []
 
 # SEM
-d6 <- d3[,lapply(.SD, function(x) sd(x, na.rm=T)/sqrt(length(na.omit(x)))), by = .(strainName, TestNumber),
+d6 <- d3[,lapply(.SD, function(x) sd(x, na.rm=T)/sqrt(length(na.omit(x)))), by = .(strainName, DrugDose, TestNumber),
 .SDcols = cols] []
 
+# this code pastes the dose in the file name. 
+# CAREFUL - if DOSE is a list, it will produce an error.
+# if there is an error here, check what Dose is. 
 fwrite(d5,paste("../PSY_Processed/Mean_Strain_TestNo_",Dose, format(Sys.time(),"mg_%Y-%m-%d(%H_%M%p)"),".csv", sep = ""))
 fwrite(d6,paste("../PSY_Processed/SEM_Strain_TestNo_",Dose, format(Sys.time(),"mg_%Y-%m-%d(%H_%M%p)"),".csv", sep = ""))
 
  
 ##################### PLOTS minute by minute by strain
-p2 <- ggplot(data = file4, mapping = aes(x = variable, y = value, color = as.factor(strainName), fill = as.factor(strainName))) + 
+p2 <- ggplot(data = file4, mapping = aes(x = variable, y = value, 
+                                         fill = as.factor(strainName),
+                                         color = as.factor(strainName))) + 
   theme_bw() +
-  stat_summary(fun.data = mean_se, geom = "ribbon", alpha = 0.3) +
+  stat_summary(fun.data = mean_se, geom = "ribbon", 
+               alpha = 0.3) +
   stat_summary(fun = mean, geom="line", color = "grey50", linewidth = 0.2) +
-  facet_grid(TestNumber~.) +
+  facet_grid(TestNumber ~ DrugDose) +
   xlim(-60, 60) +
   geom_vline(xintercept = 0, color = 'red', linewidth = .2) + 
-  ggtitle(paste("Sens 10mg/kg - Per strain")) +
   theme(legend.position = "top") + theme(legend.title=element_blank()) + # removes legend title
-  labs(x = "Time (Min)", y = "Distance (cm)") +
-  scale_y_continuous(sec.axis = sec_axis(~ . , name = "Test Number (1-4 Saline | 5-10 Cocaine | 11 Saline | 12, 13 Cocaine)", breaks = NULL, labels = NULL)) 
+  labs(x = "Time (Min)", y = "Distance (cm)",   title = (paste("Sens 7.5, 10, 15 mg/kg"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . , name = "Test Number (1-4 Saline | 5-10 Cocaine | 11 Saline | 12, 13 Cocaine)", breaks = NULL, labels = NULL)) +
+  scale_x_continuous(sec.axis = sec_axis(~ ., name = "Drug Doses (mg/kg)", labels = NULL, breaks = NULL))
+
+p2
 
 # PLOT minute by minute by each animals
 p3 <- ggplot(data = file4, mapping = aes(x = variable, y = value, color = as.factor(strainName), fill = as.factor(strainName), group=AnimalName)) + 
   theme_bw() +
   geom_line(linewidth = 0.2) +
-  facet_grid(TestNumber~strainName) +
-  xlim(-60, 60) +
+  facet_grid(TestNumber ~ strainName + DrugDose) +
+  xlim(-60, 60) + 
   geom_vline(xintercept = 0, color = 'red', linewidth = 0.2) +
   ggtitle(paste("Sens 10mg/kg - Per Animal")) +
   theme(legend.position = "top") + theme(legend.title=element_blank()) + # removes legend title
   labs(x = "Time (Min)", y = "Distance (cm)") +
-  scale_y_continuous(sec.axis = sec_axis(~ . , name = "Test Number (1-4 Saline | 5-10 Cocaine | 11 Saline | 12, 13 Cocaine)", breaks = NULL, labels = NULL)) 
+  scale_y_continuous(limits = c(0,30), sec.axis = sec_axis(~ . , name = "Test Number (1-4 Saline | 5-10 Cocaine | 11 Saline | 12, 13 Cocaine)", breaks = NULL, labels = NULL)) 
 # using secondary axis option from ggplot2 "https://stackoverflow.com/questions/11353287/how-do-you-add-a-general-label-to-facets-in-ggplot2"
 
+p3
 
 outFileNamePDF <- paste("../PSY_Processed/Min_SummaryPlots",format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".pdf", sep = "") 
 ## .. means one directory level up
@@ -356,6 +563,7 @@ chunk Plots will appear in "Sensitization Analysis\*.pdf" file
 
 ```{r}
 setwd(wd)
+
 ######################################################################
 # START PDF STATEMENT
 # 
@@ -368,14 +576,23 @@ pdf(outFileNamePDF, 10,8)
 # sum5minavg 
 # 
 #######################################################################
-
 # PLOT OF MEAN AND SEM WITH EACH TEST POINT
 sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,group = strainName), data=d3) +
   geom_point(shape = 21,size = 2) + 
-  theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se") +
+  theme_bw() +
+  theme(legend.position = "top", 
+        legend.title = element_blank(),
+        plot.margin = margin(t = 2,  # Top margin
+                             r = 2,  # Right margin
+                             b = 2,  # Bottom margin
+                             l = 2,  # Left margin
+                             unit = "cm")) +
+  facet_grid(.~DrugDose)
+   
+
 print(sp1)
 
 # PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
@@ -383,8 +600,12 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se") +
+  facet_grid(.~DrugDose)
+
 print(sp1)
+
+
 
 # PLOT FACET BY STRAIN, POINT FOR EACH TEST
 sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,group = strainName), data=d3) +
@@ -393,7 +614,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum5minavg, colour = strainName,
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) 
+  facet_grid(facets = DrugDose ~ strainName) 
 print(sp1)
 
 
@@ -403,7 +624,7 @@ sp1 <- ggplot() +
   geom_point(aes(x = as.factor(TestNumber),y = sum5minavg, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
   geom_line(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = sum5minavg, group = strainName), data=d3, fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) +
+  facet_grid(facets = DrugDose ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = sum5minavg, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
 
 print(sp1)
@@ -419,7 +640,9 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,gr
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se")+
+  facet_grid(.~DrugDose)
+
 print(sp1)
 
 # PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
@@ -427,7 +650,9 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,gr
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se") +
+  facet_grid(.~DrugDose)
+
 print(sp1)
 
 # PLOT FACET BY STRAIN, POINT FOR EACH TEST
@@ -437,7 +662,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = sum60min, colour = strainName,gr
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) 
+  facet_grid(facets = DrugDose ~ strainName) 
 print(sp1)
 
 
@@ -447,7 +672,7 @@ sp1 <- ggplot() +
   geom_point(aes(x = as.factor(TestNumber),y = sum60min, colour = as.factor(AnimalName)), data=d3, shape = 21,linewidth = 2) +
   geom_line(aes(x = as.factor(TestNumber),y = sum60min, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = sum60min, group = strainName), data=d3, fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) +
+  facet_grid(facets = DrugDose ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = sum60min, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
 
 print(sp1)
@@ -464,7 +689,8 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se")+
+  facet_grid(.~DrugDose)
 print(sp1)
 
 # PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
@@ -472,7 +698,8 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se")+
+  facet_grid(.~DrugDose)
 print(sp1)
 
 # PLOT FACET BY STRAIN, POINT FOR EACH TEST
@@ -482,7 +709,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = NetResponse, colour = strainName
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) 
+  facet_grid(facets = DrugDose ~ strainName) 
 print(sp1)
 
 
@@ -492,7 +719,7 @@ sp1 <- ggplot() +
   geom_point(aes(x = as.factor(TestNumber),y = NetResponse, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
   geom_line(aes(x = as.factor(TestNumber),y = NetResponse, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = NetResponse, group = strainName), data=d3, fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) +
+  facet_grid(facets = DrugDose ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = NetResponse, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
 
 print(sp1)
@@ -508,7 +735,8 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainNam
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se")+
+  facet_grid(.~DrugDose)
 print(sp1)
 
 # PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
@@ -516,7 +744,8 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainNam
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se")+
+  facet_grid(.~DrugDose)
 print(sp1)
 
 # PLOT FACET BY STRAIN, POINT FOR EACH TEST
@@ -526,7 +755,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = strainNam
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) 
+  facet_grid(facets = DrugDose ~ strainName) 
 print(sp1)
 
 
@@ -536,7 +765,7 @@ sp1 <- ggplot() +
   geom_point(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
   geom_line(aes(x = as.factor(TestNumber),y = AvgResp30min, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = AvgResp30min, group = strainName), data=d3, fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) +
+  facet_grid(facets = DrugDose ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = AvgResp30min, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
 
 print(sp1)
@@ -552,7 +781,8 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se")+
+  facet_grid(.~DrugDose)
 print(sp1)
 
 # PLOT OF MEAN AND SEM FOR EACH STRAIN, NO INDIVIDUAL POINTS
@@ -560,7 +790,8 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName
   theme_bw() + theme(legend.position = "top") +
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
-  stat_summary(fun.data = "mean_se")
+  stat_summary(fun.data = "mean_se")+
+  facet_grid(.~DrugDose)
 print(sp1)
 
 # PLOT FACET BY STRAIN, POINT FOR EACH TEST
@@ -570,7 +801,7 @@ sp1 <- ggplot(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = strainName
   scale_colour_brewer(palette = 'Set1') +
   geom_line(linewidth = 1.0, stat = "summary") +
   stat_summary(fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) 
+  facet_grid(facets = DrugDose ~ strainName) 
 print(sp1)
 
 
@@ -580,7 +811,7 @@ sp1 <- ggplot() +
   geom_point(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = as.factor(AnimalName)), data=d3, shape = 21,size = 2) +
   geom_line(aes(x = as.factor(TestNumber),y = BaselineAvg, group = strainName), data=d3, linewidth = 1.0, stat = "summary") +
   stat_summary(aes(x = as.factor(TestNumber),y = BaselineAvg, group = strainName), data=d3, fun.data = "mean_se") +
-  facet_grid(facets = . ~ strainName) +
+  facet_grid(facets = DrugDose ~ strainName) +
   geom_line(aes(x = as.factor(TestNumber),y = BaselineAvg, colour = as.factor(AnimalName), group = as.factor(AnimalName)), data = d3)
 
 print(sp1)
@@ -592,6 +823,73 @@ dev.off()
 #######################################################################
 
 ```
+
+# Data QC - determine why things may be behaving weirdly.
+
+```{r}
+
+# PLOT FACET BY STRAIN, POINT FOR EACH TEST Color by test date
+sp1 <- ggplot(aes(x = as.factor(strainName),y = sum5minavg, colour = TestDate,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  geom_point(shape = 21,size = 2) +
+  geom_line(linewidth = 1.0, stat = "summary") +
+  facet_wrap(facets = DrugDose ~ TestNumber) 
+print(sp1)
+
+# PLOT FACET BY STRAIN, POINT FOR EACH TEST Color by test date
+sp1 <- ggplot(aes(x = as.factor(TestDate),y = sum5minavg, colour = strainName,group = strainName), data=d3) +
+  theme_bw() + theme(legend.position = "top") +
+  geom_point(shape = 21,size = 2) +
+  geom_line(linewidth = 1.0, stat = "summary") +
+  facet_wrap(facets = DrugDose~ TestNumber) 
+print(sp1)
+
+
+
+```
+## plot sensitization for each animal 
+
+```{r}
+##########################################################
+### Plot SENS By AnimalID - one plot for each Animal
+##########################################################
+setwd(wd)
+
+
+outFileNamePDF <- paste("../PSY_Processed/SENS_by_Animal",format(Sys.time(),"%Y-%m-%d(%H_%M%p)"),".pdf", sep = "") ## .. means one directory level up
+# toPlotAnimalNames <- levels(as.factor(d3$AnimalName))
+toPlotAnimalNames <- levels(as.factor(d3$MouseID))
+
+
+pdf(outFileNamePDF, 6,3)
+
+for (toPlot in toPlotAnimalNames) {
+  # extract the animal to plot
+  toPlot1 <- d3[MouseID == toPlot, ]
+  # testDates <- levels(as.factor(toPlot1$TestNumber))
+
+  # select and melt the data columns
+  toPlot2 <- melt(toPlot1, id.vars = c("TestNumber"),
+                measure.vars = c("sum5minavg",	"sum60min",	"BaselineAvg", "AvgResp30min",	"NetResponse"))
+
+# plot the animal
+  p1 <- ggplot() +
+  theme_bw() + theme(legend.title=element_blank()) + 
+  ggtitle(label = paste("MouseID: ", toPlot), subtitle = paste0("AnimalName: ",levels(as.factor(toPlot1$AnimalName)), "\n", "StrainName: ", levels(as.factor(toPlot1$strainName)))) + 
+  geom_point(aes(x = TestNumber,y = value, color = variable), data=toPlot2,size = 3) + 
+  geom_line(aes(x = TestNumber,y = value, group = variable, color = variable), data=toPlot2, linewidth = 1.0) +
+  scale_y_continuous(limits = c(0,300)) +
+  scale_x_discrete(name ="Dose (mg)", limits=c("1","2","3", "4", "5","6", "7","8","9","10", "11", "12", "13")) +
+  geom_vline(xintercept=11, color = "blue")
+
+  print(p1)
+
+  }
+
+dev.off()
+
+```
+
 
 data.table notes <https://rdatatable.gitlab.io/data.table/index.html>
 
